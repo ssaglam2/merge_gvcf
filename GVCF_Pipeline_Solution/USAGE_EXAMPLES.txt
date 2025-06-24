@@ -1,0 +1,246 @@
+===============================================================================
+GVCF FILTER & MERGE PIPELINE - USAGE EXAMPLES
+===============================================================================
+
+This file contains practical examples for using the GVCF pipeline.
+
+===============================================================================
+BASIC USAGE
+===============================================================================
+
+1. SETUP YOUR DIRECTORY STRUCTURE:
+   
+   Your_Project/
+   ├── gvcf/                              # Put your GVCF files here
+   │   ├── sample1.hard-filtered.gvcf.gz
+   │   ├── sample2.hard-filtered.gvcf.gz
+   │   └── sample3.hard-filtered.gvcf.gz
+   └── GVCF_Pipeline_Solution/            # Copy this folder here
+       ├── gvcf_filter_merge.sh
+       ├── backup_merge_only.sh
+       ├── README.md
+       └── USAGE_EXAMPLES.txt
+
+2. INSTALL DEPENDENCIES (in WSL):
+   
+   sudo apt update
+   sudo apt install bcftools tabix parallel
+
+3. RUN THE PIPELINE:
+   
+   cd GVCF_Pipeline_Solution
+   bash gvcf_filter_merge.sh
+
+===============================================================================
+EXPECTED PROCESSING TIME
+===============================================================================
+
+For your Intel Xeon E-2124 + 16GB RAM system:
+
+File Count    Filter Time    Merge Time    Total Time
+----------    -----------    ----------    ----------
+10 files      5-10 min       2-5 min       7-15 min
+50 files      15-30 min      5-15 min      20-45 min
+99 files      30-60 min      10-30 min     40-90 min
+
+Note: Times depend on file sizes and content complexity.
+
+===============================================================================
+EXAMPLE OUTPUT MESSAGES
+===============================================================================
+
+SUCCESSFUL RUN:
+=================================
+   GVCF FILTER & MERGE PIPELINE
+=================================
+
+[INFO] Checking dependencies...
+[SUCCESS] All dependencies are available
+[INFO] Validating input files...
+[SUCCESS] Found 99 GVCF files to process
+[INFO] Detected 'chr' prefix in chromosome names (e.g., chr1, chr2)
+[INFO] Will filter for chromosomes: chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,chr11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chr20,chr21,chr22
+
+[INFO] Starting pipeline with configuration:
+[INFO] - Input directory: gvcf
+[INFO] - Output directory: filtered_merged_output
+[INFO] - Parallel jobs: 2
+[INFO] - Threads per job: 2
+[INFO] - Target chromosomes: chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,chr11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chr20,chr21,chr22
+
+[INFO] Filtering GVCF files for PASS variants and chromosomes 1-22...
+[INFO] Using GNU parallel for faster processing (2 jobs)
+Computers / CPU cores / Max jobs to run
+1:local / 4 / 2
+
+Computer:jobs running/jobs completed/%of started jobs/Average seconds to complete
+local:2/0/0%/0.0s 
+
+[SUCCESS] Successfully filtered 99 files
+
+[INFO] Merging filtered VCF files...
+[INFO] Merging 99 files into: filtered_merged_output/merged_pass_chr1-22.vcf.gz
+[INFO] Indexing final merged VCF...
+[SUCCESS] Merged VCF created: filtered_merged_output/merged_pass_chr1-22.vcf.gz
+
+[INFO] Cleaning up temporary files...
+[SUCCESS] Cleanup completed
+
+[INFO] Generating summary statistics...
+[SUCCESS] Summary saved to: filtered_merged_output/pipeline_summary.txt
+
+GVCF Processing Pipeline Summary
+===============================
+Date: Mon Dec 23 14:30:45 EST 2024
+Input directory: gvcf
+Output directory: filtered_merged_output
+Final merged VCF: filtered_merged_output/merged_pass_chr1-22.vcf.gz
+Chromosomes included: chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,chr11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chr20,chr21,chr22
+
+Processing Configuration:
+- Parallel jobs: 2
+- Threads per job: 2
+- Total CPU threads used: 4
+
+File Statistics:
+- Input files processed: 99
+- Final VCF size: 2.1G
+- Total variants: 12,847,392
+- Samples in final VCF: 99
+
+Quality Control:
+- All variants have FILTER=PASS
+- Only autosomes (chromosomes 1-22) included
+- All files properly indexed
+
+Output Files:
+- Main result: filtered_merged_output/merged_pass_chr1-22.vcf.gz
+- Index file: filtered_merged_output/merged_pass_chr1-22.vcf.gz.tbi
+- This summary: filtered_merged_output/pipeline_summary.txt
+
+[SUCCESS] Pipeline completed successfully!
+[SUCCESS] Final output: filtered_merged_output/merged_pass_chr1-22.vcf.gz
+[INFO] You can now use this file for downstream analysis (PLINK, VEP, etc.)
+
+===============================================================================
+TROUBLESHOOTING EXAMPLES
+===============================================================================
+
+PROBLEM: "No GVCF files found"
+SOLUTION:
+   # Check your file location
+   ls gvcf/*.gvcf.gz
+   ls gvcf/*.g.vcf.gz
+   
+   # Make sure files are in the right place
+   mkdir -p gvcf
+   cp /path/to/your/files/*.gvcf.gz gvcf/
+
+PROBLEM: "bcftools not found"
+SOLUTION:
+   # Install in WSL
+   sudo apt update
+   sudo apt install bcftools tabix parallel
+
+PROBLEM: Pipeline fails during merge
+SOLUTION:
+   # Use the backup merge script
+   bash backup_merge_only.sh
+
+PROBLEM: Memory issues
+SOLUTION:
+   # Edit the script to reduce parallel jobs
+   nano gvcf_filter_merge.sh
+   # Change: MAX_PARALLEL_JOBS=1
+
+===============================================================================
+INTEGRATION WITH OTHER TOOLS
+===============================================================================
+
+AFTER PIPELINE COMPLETION, YOU CAN:
+
+1. CONVERT TO PLINK FORMAT:
+   plink2 --vcf filtered_merged_output/merged_pass_chr1-22.vcf.gz \
+          --make-bed \
+          --out my_dataset
+
+2. BASIC STATISTICS:
+   bcftools stats filtered_merged_output/merged_pass_chr1-22.vcf.gz > stats.txt
+
+3. EXTRACT SAMPLE NAMES:
+   bcftools query -l filtered_merged_output/merged_pass_chr1-22.vcf.gz > samples.txt
+
+4. COUNT VARIANTS PER CHROMOSOME:
+   bcftools query -f '%CHROM\n' filtered_merged_output/merged_pass_chr1-22.vcf.gz | sort | uniq -c
+
+===============================================================================
+CUSTOMIZATION EXAMPLES
+===============================================================================
+
+TO INCLUDE SEX CHROMOSOMES:
+   # Edit gvcf_filter_merge.sh
+   # Change the CHROMOSOMES line to:
+   CHROMOSOMES="chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,chr11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chr20,chr21,chr22,chrX,chrY"
+
+TO PROCESS ONLY SPECIFIC CHROMOSOMES:
+   # Edit gvcf_filter_merge.sh
+   # Change the CHROMOSOMES line to:
+   CHROMOSOMES="chr1,chr2,chr3"
+
+TO USE DIFFERENT INPUT DIRECTORY:
+   # Edit gvcf_filter_merge.sh
+   # Change the INPUT_DIR line to:
+   INPUT_DIR="my_gvcf_files"
+
+===============================================================================
+PERFORMANCE MONITORING
+===============================================================================
+
+TO MONITOR RESOURCE USAGE:
+   # In another WSL terminal:
+   watch -n 5 'free -h && echo "---" && ps aux | grep bcftools'
+
+TO CHECK DISK SPACE:
+   df -h
+
+TO MONITOR PROGRESS:
+   # Check number of filtered files created
+   ls -1 filtered_merged_output/temp_filtered/*.filtered.vcf.gz | wc -l
+
+===============================================================================
+QUALITY CONTROL CHECKS
+===============================================================================
+
+VERIFY YOUR RESULTS:
+
+1. CHECK SAMPLE COUNT:
+   bcftools query -l filtered_merged_output/merged_pass_chr1-22.vcf.gz | wc -l
+   # Should match your input file count
+
+2. CHECK CHROMOSOMES:
+   bcftools view -h filtered_merged_output/merged_pass_chr1-22.vcf.gz | grep "##contig"
+   # Should only show chr1-22 (or 1-22)
+
+3. CHECK FILTER STATUS:
+   bcftools view -H filtered_merged_output/merged_pass_chr1-22.vcf.gz | cut -f7 | sort | uniq
+   # Should only show "PASS"
+
+4. BASIC STATISTICS:
+   bcftools stats filtered_merged_output/merged_pass_chr1-22.vcf.gz | head -20
+
+===============================================================================
+SUPPORT & DOCUMENTATION
+===============================================================================
+
+For detailed explanations, see README.md
+For script internals, read the comments in gvcf_filter_merge.sh
+For emergency merge, use backup_merge_only.sh
+
+The pipeline is optimized for your hardware:
+- Intel Xeon E-2124 (4 cores, no hyperthreading)
+- 16GB RAM
+- WSL environment
+
+All settings are pre-configured for maximum stability and performance.
+
+=============================================================================== 
