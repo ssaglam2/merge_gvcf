@@ -1,7 +1,7 @@
 # merge_gvcf
 
 This repository provides a BASH script and guidelines for processing multiple gVCF (genomic VCF) files. The pipeline performs the following key steps:
-
+This pipeline is suitable for merging and then filtering. For filtering for PASS and then merging files visit GVCF_Pipeline_Solution folder.
 1.  Filters each input gVCF to retain only autosomal chromosomes (`chr1` through `chr22`).
 2.  Merges these filtered gVCFs into a single cohort gVCF.
 3.  Filters the merged cohort gVCF to keep only variants with a `PASS` status in the FILTER column.
